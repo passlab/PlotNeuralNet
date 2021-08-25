@@ -169,7 +169,7 @@ def block_Decoder( name, botton, top, caption="", n_filer=64, offset="(1,0,0)", 
             offset=offset,
             to="({}-east)".format(botton),
             n_filer="",
-            s_filer="",I mean
+            s_filer="",
             width=1, 
             height=size[0], 
             depth=size[1]
