@@ -14,6 +14,7 @@ def to_head( projectpath ):
 def to_cor():
     return r"""
 \def\ConvColor{rgb:yellow,5;red,2.5;white,5}
+\def\DcnvColor{rgb:blue,5;green,2.5;white,5}
 \def\ConvReluColor{rgb:yellow,5;red,5;white,5}
 \def\PoolColor{rgb:red,1;black,0.3}
 \def\UnpoolColor{rgb:blue,2;green,1;black,0.3}
@@ -35,10 +36,24 @@ def to_begin():
 
 # layers definition
 
-def to_input( pathfile, to='(-3,0,0)', width=8, height=8, name="temp" ):
+def to_input( pathfile, to='(-3,0,0)', width=8, height=8, name="temp", opacity=1.0, caption=""):
+    if (caption != ""):
+        return r"""
+\node[opacity="""+str(opacity)+""", canvas is zy plane at x=0 ] (""" + name + """) at """+ to +""" 
+    {\includegraphics[width="""+ str(width)+"cm"+""",height="""+ str(height)+"cm"+"""]{"""+ pathfile +"""}};
+\node[inner sep=0pt,below=\belowcaptionskip of realbacillus,text width=\linewidth]
+    {\captionof{figure}{the second image}};
+""";
     return r"""
-\node[canvas is zy plane at x=0] (""" + name + """) at """+ to +""" {\includegraphics[width="""+ str(width)+"cm"+""",height="""+ str(height)+"cm"+"""]{"""+ pathfile +"""}};
+\node[opacity="""+str(opacity)+""", canvas is zy plane at x=0 ] (""" + name + """) at """+ to +""" {\includegraphics[width="""+ str(width)+"cm"+""",height="""+ str(height)+"cm"+"""]{"""+ pathfile +"""}};
 """
+
+
+def to_output( pathfile, to='(-3,0,0)', width=8, height=8, name="temp",xshift=3):
+    return r"""
+\node[canvas is zy plane at x=0] (""" + name + """) at """+ "([xshift=" + str(xshift) + "cm]{}-east)".format(to) + """ {\includegraphics[width="""+ str(width)+"cm"+""",height="""+ str(height)+"cm"+"""]{"""+ pathfile +"""}};
+"""
+
 
 # Conv
 def to_Conv( name, s_filer=256, n_filer=64, offset="(0,0,0)", to="(0,0,0)", width=1, height=40, depth=40, caption=" " ):
@@ -47,11 +62,45 @@ def to_Conv( name, s_filer=256, n_filer=64, offset="(0,0,0)", to="(0,0,0)", widt
     {Box={
         name=""" + name +""",
         caption="""+ caption +r""",
-        xlabel={{"""+ str(n_filer) +""", }},
+        xlabel={{ """+ str(n_filer) +""", }},
         zlabel="""+ str(s_filer) +""",
         fill=\ConvColor,
         height="""+ str(height) +""",
         width="""+ str(width) +""",
+        depth="""+ str(depth) +"""
+        }
+    };
+"""
+
+# Conv
+def to_TransposeConv( name, s_filer=256, n_filer=64, offset="(0,0,0)", to="(0,0,0)", width=1, height=40, depth=40, caption=" " ):
+    return r"""
+\pic[shift={"""+ offset +"""}] at """+ to +""" 
+    {Box={
+        name=""" + name +""",
+        caption="""+ caption +r""",
+        xlabel={{ """+ str(n_filer) +""", }},
+        zlabel="""+ str(s_filer) +""",
+        fill=\DcnvColor,
+        height="""+ str(height) +""",
+        width="""+ str(width) +""",
+        depth="""+ str(depth) +"""
+        }
+    };
+"""
+
+def to_ConvRelu( name, s_filer=256, n_filer=64, offset="(0,0,0)", to="(0,0,0)", width=2, height=40, depth=40, caption=" " ):
+    return r"""
+\pic[shift={ """+ offset +""" }] at """+ to +""" 
+    {RightBandedBox={
+        name="""+ name +""",
+        caption="""+ caption +""",
+        xlabel={{ """+ str(n_filer) +""", }},
+        zlabel="""+ str(s_filer) +""",
+        fill=\ConvColor,
+        bandfill=\ConvReluColor,
+        height="""+ str(height) +""",
+        width={ """+ str(width) +""" },
         depth="""+ str(depth) +"""
         }
     };
@@ -76,15 +125,35 @@ def to_ConvConvRelu( name, s_filer=256, n_filer=(64,64), offset="(0,0,0)", to="(
     };
 """
 
+# Conv,Conv,Conv,relu
+# Bottleneck
+def to_ConvConvConvRelu( name, s_filer=256, n_filer=(64,64), offset="(0,0,0)", to="(0,0,0)", width=(2,2,2), height=40, depth=40, caption=" " ):
+    return r"""
+\pic[shift={ """+ offset +""" }] at """+ to +""" 
+    {RightBandedBox={
+        name="""+ name +""",
+        caption="""+ caption +""",
+        xlabel={{ """+ str(n_filer[0]) +""", """+ str(n_filer[1]) +""", """+ str(n_filer[2]) +""" }},
+        zlabel="""+ str(s_filer) +""",
+        fill=\ConvColor,
+        bandfill=\ConvReluColor,
+        height="""+ str(height) +""",
+        width={ """+ str(width[0]) +""" , """+ str(width[1]) +""", """+ str(width[2]) +""" },
+        depth="""+ str(depth) +"""
+        }
+    };
+"""
+
 
 
 # Pool
-def to_Pool(name, offset="(0,0,0)", to="(0,0,0)", width=1, height=32, depth=32, opacity=0.5, caption=" "):
+def to_Pool(name, offset="(0,0,0)", to="(0,0,0)", width=1, height=32, depth=32, opacity=0.5, caption=" ", s_filer=""):
     return r"""
 \pic[shift={ """+ offset +""" }] at """+ to +""" 
     {Box={
         name="""+name+""",
         caption="""+ caption +r""",
+        zlabel="""+ str(s_filer) +r""",
         fill=\PoolColor,
         opacity="""+ str(opacity) +""",
         height="""+ str(height) +""",
@@ -110,7 +179,23 @@ def to_UnPool(name, offset="(0,0,0)", to="(0,0,0)", width=1, height=32, depth=32
     };
 """
 
-
+def to_Concat( name, s_filer=256, n_filer=64, offset="(0,0,0)", to="(0,0,0)", width=6, height=40, depth=40, opacity=0.2, caption=" " ):
+    return r"""
+\pic[shift={ """+ offset +""" }] at """+ to +""" 
+    {RightBandedBox={
+        name="""+ name + """,
+        caption="""+ caption + """,
+        xlabel={{ """+ str(n_filer) + """, }},
+        zlabel="""+ str(s_filer) +r""",
+        fill={rgb:white,1;black,3},
+        bandfill={rgb:white,1;black,2},
+        opacity="""+ str(opacity) +""",
+        height="""+ str(height) +""",
+        width="""+ str(width) +""",
+        depth="""+ str(depth) +"""
+        }
+    };
+"""
 
 def to_ConvRes( name, s_filer=256, n_filer=64, offset="(0,0,0)", to="(0,0,0)", width=6, height=40, depth=40, opacity=0.2, caption=" " ):
     return r"""
@@ -183,11 +268,10 @@ def to_connection( of, to):
     return r"""
 \draw [connection]  ("""+of+"""-east)    -- node {\midarrow} ("""+to+"""-west);
 """
-
-def to_skip( of, to, pos=1.25):
+def to_skip( of, to, pos_of=1.25, pos_to=1.25):
     return r"""
-\path ("""+ of +"""-southeast) -- ("""+ of +"""-northeast) coordinate[pos="""+ str(pos) +"""] ("""+ of +"""-top) ;
-\path ("""+ to +"""-south)  -- ("""+ to +"""-north)  coordinate[pos="""+ str(pos) +"""] ("""+ to +"""-top) ;
+\path ("""+ of +"""-southeast) -- ("""+ of +"""-northeast) coordinate[pos="""+ str(pos_of) +"""] ("""+ of +"""-top) ;
+\path ("""+ to +"""-south)  -- ("""+ to +"""-north)  coordinate[pos="""+ str(pos_to) +"""] ("""+ to +"""-top) ;
 \draw [copyconnection]  ("""+of+"""-northeast)  
 -- node {\copymidarrow}("""+of+"""-top)
 -- node {\copymidarrow}("""+to+"""-top)
@@ -200,6 +284,20 @@ def to_end():
 \end{document}
 """
 
+def to_ReLU(name, offset="(0,0,0)", to="(0,0,0)", width=1, height=32, depth=32, opacity=0.5, caption=" "):
+    return r"""
+\pic[shift={ """+ offset +""" }] at """+ to +""" 
+    {Box={
+        name="""+name+""",
+        caption="""+ caption +r""",
+        fill=\ConvReluColor,
+        opacity="""+ str(opacity) +""",
+        height="""+ str(height) +""",
+        width="""+ str(width) +""",
+        depth="""+ str(depth) +"""
+        }
+    };
+"""
 
 def to_generate( arch, pathname="file.tex" ):
     with open(pathname, "w") as f: 
